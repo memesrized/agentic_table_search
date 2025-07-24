@@ -1,0 +1,7 @@
+pandas
+ydata-profiling
+pandasql
+langchain
+langchain-openai
+langgraph
+python-dotenv
