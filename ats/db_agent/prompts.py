@@ -49,10 +49,7 @@ Columns in the table, use exact column names in exact case in the query:
     "Test_Results": "Describes the results of a medical test conducted during the patient's admission. Possible values include \"Normal,\" \"Abnormal,\" or \"Inconclusive,\" indicating the outcome of the test."
 }
 
-Important notes:
-- columns ["Name", "Doctor", "Hospital"] are not in lowercase, but you need to perform search in lowercase to avoid case sensitivity issues (but the result should be in original case).
-- "Hospital" column contains 'broken' values in some way (e.g. "Moreno Murphy, Griffith and", here user may ask for "Moreno Murphy and Griffith" and expect to get this value, so in this case you can use two LIKE filters with AND).
-- Data types: {
+Data types: {
     "Patient_ID": "int64",
     "Name": "string",
     "Year of Birth": "int64"
@@ -71,6 +68,20 @@ Important notes:
     "Medication": "string",
     "Test_Results": "string"
 }
+
+VERY IMPORTANT NOTES:
+- columns ["Name", "Doctor", "Hospital"] are not in lowercase, but you need to perform search in lowercase to avoid case sensitivity issues (but the result should be in original case).
+- "Hospital" column contains 'broken' values in some way (e.g. "Moreno Murphy, Griffith and", here user may ask for "Moreno Murphy and Griffith" and expect to get this value, so in this case you can use two LIKE filters with AND).
+
+Examples:
+You got request from user to find patients from "Moreno Murphy and Griffith" hospital.
+In reality there is only "Moreno Murphy, Griffith and" hospital.
+To find it you need to create condition as "WHERE LOWER(Hospital) LIKE '%moreno%' AND LOWER(Hospital) LIKE '%murphy%' AND LOWER(Hospital) LIKE '%griffith%'"
+So you need to look separately (but with "AND" logic) for each meaningful word in the hospital name provided by user.
+
+You need to find John Doe as a patient (similar logic for doctor).
+You should use "LOWER(Name) = "john doe" in where condidtion for this.
+
 """
 
 sql_context = """

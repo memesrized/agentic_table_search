@@ -6,6 +6,8 @@ from langgraph.prebuilt import create_react_agent
 from ats.chat.prompts import chat_system_prompt
 from ats.db_agent.agent import DBAgent
 from ats.db_connector import Database
+from ats.chat.utils import convert_langchain_messages_to_openai
+from ats.chat.guardrails import Guardrails
 
 from langchain_openai.chat_models import ChatOpenAI
 from langchain.tools import tool
@@ -23,8 +25,11 @@ db = get_db()
 model = ChatOpenAI(name="gpt-4o", api_key=os.getenv("OPENAI_API_KEY"))
 model = model.with_structured_output(method="json_mode")
 
+rails = Guardrails(fallback_to_llm=True, llm=model)
+
 # if "result_table" not in st.session_state:
 #     st.session_state.result_table = None
+
 
 @tool
 def db_tool(user_query: str):
@@ -44,7 +49,10 @@ def db_tool(user_query: str):
 tools = [db_tool]
 model_agent = ChatOpenAI(name="gpt-4o", api_key=os.getenv("OPENAI_API_KEY"))
 agent = create_react_agent(
-    model_agent, tools, prompt=chat_system_prompt.format(user_name="Matthew Smith"), debug=True
+    model_agent,
+    tools,
+    prompt=chat_system_prompt.format(user_name="Matthew Smith"),
+    debug=True,
 )
 
 st.title("Healthcare search agent")
@@ -70,23 +78,25 @@ def convert_messages_to_langchain(messages):
     return langchain_messages
 
 
-# React to user input
-if prompt := st.chat_input("What is up?"):
-    # Display user message in chat message container
-    st.chat_message("user").markdown(prompt)
-    # Add user message to chat history
-    st.session_state.messages.append({"role": "user", "content": prompt})
+if prompt := st.chat_input("Type your message here"):
+    to_check_with_rails = st.session_state.messages + [{"role": "user", "content": prompt}]
+    if rails.rail(to_check_with_rails):
+        st.chat_message("user").markdown(prompt)
 
-    response = agent.invoke(
-        {"messages": convert_messages_to_langchain(st.session_state.messages)},
-    )
-    response = response["messages"][-1].content
-    # Display assistant response in chat message container
-    with st.chat_message("assistant"):
-        st.markdown(response)
-    # print("SESSION STATE RESULT TABLE2", st.session_state.result_table)
-    # Add assistant response to chat history
-    st.session_state.messages.append({"role": "assistant", "content": response})
+        st.session_state.messages.append({"role": "user", "content": prompt})
+
+        response = agent.invoke(
+            {"messages": convert_messages_to_langchain(st.session_state.messages)},
+        )
+        response = response["messages"][-1].content
+        with st.chat_message("assistant"):
+            st.markdown(response)
+        # print("SESSION STATE RESULT TABLE2", st.session_state.result_table)
+        st.session_state.messages.append({"role": "assistant", "content": response})
+    else:
+        st.info(
+            "System is focused only on question answering for healthcare! Please try again with another message."
+        )
 
 # with st.sidebar:
 #     st.write("### Result table")

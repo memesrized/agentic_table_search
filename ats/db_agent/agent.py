@@ -5,7 +5,7 @@ import pandas as pd
 from typing import Union
 import streamlit as st
 
-logger = get_logger(name="db_agent", log_file="db_agent.log")
+logger = get_logger(name="db_agent")
 
 
 class DBAgent:
