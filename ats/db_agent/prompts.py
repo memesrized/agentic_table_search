@@ -23,11 +23,16 @@ User query:
 """
 
 data_context = """There is one and only one table named 'df' that you can use. Table length is 54966 rows.
-It contains healthcare records for patients.
+It contains healthcare records with all necessary information described below, so you can derive insights from it.
+
+Single record in this healthcare dataset represents one patient's complete hospital admission episode, not one patient.
+It means that if a patient was admitted multiple times, there will be multiple records for that patient.
 
 Columns in the table, use exact column names in exact case in the query:         
 {
+    "Patient_ID": "Unique identifier for the patient.",
     "Name": "This column represents the name of the patient associated with the healthcare record.",
+    "Year_of_Birth": "Year of birth of the patient.",
     "Age": "The age of the patient at the time of admission, expressed in years.",
     "Gender": "Indicates the gender of the patient, either \"Male\" or \"Female.\"",
     "Blood_Type": "The patient's blood type, which can be one of the common blood types (e.g., \"A+\", \"O-\", etc.).",
@@ -48,7 +53,9 @@ Important notes:
 - columns ["Name", "Doctor", "Hospital"] are not in lowercase, but you need to perform search in lowercase to avoid case sensitivity issues (but the result should be in original case).
 - "Hospital" column contains 'broken' values in some way (e.g. "Moreno Murphy, Griffith and", here user may ask for "Moreno Murphy and Griffith" and expect to get this value, so in this case you can use two LIKE filters with AND).
 - Data types: {
+    "Patient_ID": "int64",
     "Name": "string",
+    "Year of Birth": "int64"
     "Age": "int64",
     "Gender": "string",
     "Blood_Type": "string",
@@ -67,10 +74,28 @@ Important notes:
 """
 
 sql_context = """
-Use SQLite syntax to query the table, since your query will be executed with pandasql library.
+- Use SQLite syntax to query the table, since your query will be executed with pandasql library.
+- Instead of e.g. "COUNT(*)" (or with other aggregations) as column name, you must use appropriate name like "something_count" or "something_number", etc.
 """
 
 nlq_to_sql_prompt = nlq_to_sql_prompt.format(
     data_context=data_context,
     sql_context=sql_context
 )
+
+nlq_check_prompt = """Check if this natural language query:
+    - doesn't plan to change data in the database, i.e. doesn't try to insert or delete or update data in the table/database
+    - temporary tables for calculation and analysis are allowed
+    - aligns with the database/table description.
+---
+Data description:
+{context}
+---
+Response format is a json with the following format:
+{{
+    "is_valid": true/false, # True if the query is valid, False otherwise
+    "message": "Your message explaining the reason why the query is valid or not."  # skip if is_valid is True
+}}
+---
+User query:
+"""

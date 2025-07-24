@@ -50,7 +50,7 @@ def get_logger(
 
     logger = logging.getLogger(name)
     logger.setLevel(level)
-    # logger.propagate = False  # allow propagation to ensure logging works
+    logger.propagate = False  # allow propagation to ensure logging works
 
     # Check if custom handlers are already set for this logger, not inherited ones.
     if not logger.handlers:
