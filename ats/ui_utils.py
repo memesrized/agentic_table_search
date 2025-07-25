@@ -11,6 +11,8 @@ def show_tool_message(message):
         with st.chat_message("tool", avatar="📊"):
             st.write("Raw database results:")
             with st.popover("Click to expand data", use_container_width=True):
+                if tool_res.get("meta", {}).get("user_query"):
+                    st.write(f"Used query: {tool_res["meta"]["user_query"]}")
                 tool_res = json.loads(tool_result["result"])
                 st.dataframe(pd.DataFrame(tool_res))
 
@@ -23,3 +25,10 @@ def show_message(message):
     elif isinstance(message, AIMessage):
         if message.content:
             st.chat_message("assistant").markdown(message.content)
+
+
+model_name_map = {
+    "smart": "gpt-4o",
+    "& smarter": "gpt-4.1",
+    "& even smarter": "o4-mini",
+}

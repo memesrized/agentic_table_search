@@ -6,10 +6,10 @@ from typing import Optional
 
 from dotenv import load_dotenv
 
+# just copypasted from my another project
 
 load_dotenv()
 
-# Configure root logger, otherwise gensim logger doesn't work
 if not logging.getLogger().hasHandlers():
     logging.basicConfig(
         level=logging.INFO,

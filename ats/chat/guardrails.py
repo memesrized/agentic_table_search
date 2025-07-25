@@ -10,7 +10,9 @@ from ats.chat.utils import convert_langchain_messages_to_openai
 
 logger = get_logger("guardrails")
 
-
+# who need a library when you can reinvent it
+# but actually it was unnecessary to add another library with it's own flow for llms
+# this class can be easily modified in any way after poc stage
 class Guardrails:
     """...kind of"""
 
@@ -40,6 +42,9 @@ class Guardrails:
             logger.debug("LLM guardrail check: {}".format(flag))
         return flag
 
+    # stupid and simple, to reduce number of queries that go to LLM and hence reduce latency and price
+    # it would be nice to replace it with BERT-ish model, but it's out of scope for now
+    # stemming / lemmatization would be nice too, but I don't have time for this
     def check_messages_regexp(self, messages: list[dict]) -> bool:
         messages = " ".join([x["content"] for x in messages[-1:] if x["role"] == "user"])  # is 1 msg too strict?
         logger.debug("regexp check messages: {}".format(messages))

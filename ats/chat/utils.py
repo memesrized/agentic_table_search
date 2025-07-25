@@ -11,6 +11,8 @@ def convert_langchain_messages_to_openai(messages):
             continue
     return res_messages
 
+
+# I just ask gpt to generate this list of words related to healthcare and the database
 words_for_guardrails = [
     "patient",
     "patients",
