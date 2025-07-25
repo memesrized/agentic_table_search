@@ -21,4 +21,5 @@ def show_message(message):
     elif isinstance(message, HumanMessage):
         st.chat_message("user").markdown(message.content)
     elif isinstance(message, AIMessage):
-        st.chat_message("assistant").markdown(message.content)
+        if message.content:
+            st.chat_message("assistant").markdown(message.content)

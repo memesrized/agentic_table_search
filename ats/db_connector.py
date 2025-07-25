@@ -9,6 +9,7 @@ def load_df(path):
     df["Discharge_Date"] = pd.to_datetime(df["Discharge_Date"])
     return df
 
+# simple wrapper, so it can be easily replaced with at least sqlite, but better with a normal DB
 class Database:
     def __init__(self, df: Union[pd.DataFrame, str]):
         if isinstance(df, str):

@@ -21,8 +21,6 @@ from ats.ui_utils import show_message, show_tool_message
 st.title("Healthcare search agent")
 
 # LOAD DATA
-
-
 @st.cache_data
 def get_db():
     return Database("data/processed/healthcare_dataset.csv")
@@ -30,14 +28,41 @@ def get_db():
 
 db = get_db()
 
-# GET USERNAME
-usernames = list(db.df.Doctor.unique())
-username = st.selectbox("Select your account:", usernames, index=0)
+# SIDEBAR WITH KNOBS
+with st.sidebar:
+    st.write("## Parameters:")
+    usernames = list(db.df.Doctor.unique())
+    username = st.selectbox("Please, select your name:", usernames, index=None)
+
+    db_agent_model_name = st.selectbox(
+        "LLM", options=["smart", "& smarter", "& even smarter"]
+    )
+
+    table_truncation = st.slider(
+        "Maximum size of output table",
+        min_value=1,
+        max_value=300,
+        value=200,
+        help="Too big tables won't fit into models context, but they can be truncated to the threshold",
+    )
+
+    double_check = st.checkbox(
+        "Double check",
+        help="Take more time, may reject some queries, but should be more precise.",
+    )
+    
+
+model_name_map = {
+    "smart": "gpt-4o",
+    "& smarter": "gpt-4.1",
+    "& even smarter": "o4-mini",
+}
+
 
 # SETUP MODEL FOR DB_TOOL AND RAILS
 
 model = ChatOpenAI(
-    name="gpt-4o", api_key=os.getenv("OPENAI_API_KEY")
+    name=model_name_map[db_agent_model_name], api_key=os.getenv("OPENAI_API_KEY")
 ).with_structured_output(method="json_mode")
 rails = Guardrails(fallback_to_llm=True, llm=model)
 
@@ -52,7 +77,9 @@ def db_tool(user_query: str):
     Args:
         user_query (str): The natural language query from the user.
     """
-    db_agent = DBAgent(model=model, db=db)
+    db_agent = DBAgent(
+        model=model, db=db, double_check=double_check, table_truncation=table_truncation
+    )
     result = db_agent.tool(user_query=user_query)
     return result
 
@@ -71,30 +98,36 @@ agent = create_react_agent(
 
 # START OF THE PAGE
 
-if "messages" not in st.session_state:
-    st.session_state.messages = []
+if username is not None:
 
-# show messages in the chat
-for message in st.session_state.messages:
-    show_message(message)
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
 
-# main processing
-if prompt := st.chat_input("Type your message here"):
-    prompt = HumanMessage(prompt)
-    to_check_with_rails = st.session_state.messages + [prompt]
+    # show messages in the chat
+    for message in st.session_state.messages:
+        show_message(message)
 
-    if rails.rail(to_check_with_rails):  # if check is passed print user's message and process
-        st.session_state.messages.append(prompt)
-        show_message(prompt)
-        response = agent.invoke({"messages": st.session_state.messages})  # returns full convesation
+    # main processing
+    if prompt := st.chat_input("Type your message here"):
+        prompt = HumanMessage(prompt)
+        to_check_with_rails = st.session_state.messages + [prompt]
 
-        st.session_state.messages = response["messages"]
+        if rails.rail(
+            to_check_with_rails
+        ):  # if check is passed print user's message and process
+            st.session_state.messages.append(prompt)
+            show_message(prompt)
+            response = agent.invoke(
+                {"messages": st.session_state.messages}
+            )  # returns full convesation
 
-        if response["messages"][-2].name == "db_tool":
-            show_tool_message(response["messages"][-2])  # show resulting table
-        show_message(response["messages"][-1])  # show llm response
+            st.session_state.messages = response["messages"]
 
-    else:
-        st.info(
-            "System is focused only on question answering for healthcare! Please try again with another message."
-        )
+            if response["messages"][-2].name == "db_tool":
+                show_tool_message(response["messages"][-2])  # show resulting table
+            show_message(response["messages"][-1])  # show llm response
+
+        else:
+            st.info(
+                "System is focused only on question answering for healthcare! Please try again with another message."
+            )

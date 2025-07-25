@@ -22,11 +22,12 @@ Response is a json with the following format:
 User query:
 """
 
-data_context = """There is one and only one table named 'df' that you can use. Table length is 54966 rows.
+data_context = """There is one and only one table named 'df' that you can use. Table length is 50000 rows.
 It contains healthcare records with all necessary information described below, so you can derive insights from it.
 
 Single record in this healthcare dataset represents one patient's complete hospital admission episode, not one patient.
 It means that if a patient was admitted multiple times, there will be multiple records for that patient.
+And e.g. doctor's name in a record means that the patient from this record is doctor's patient, i.e. this table/database is not normalized and can be treated like a list of transactions from which you can derive info.
 
 Columns in the table, use exact column names in exact case in the query:         
 {
@@ -110,4 +111,44 @@ Response format is a json with the following format:
 }}
 ---
 User query:
+"""
+
+prompt_simple_check_sql = """
+Check if provided sql solves corretly the task from natural language query (nlq).
+
+Especially check each each point SEPARATELY regarding nlq AND MENTION IT IN FINAL REASONS:
+- cases when the nlq is complex and has references e.g. pronouns within the query, so "them" could refer to different entities
+- matching between logical structures in nlq and sql, e.g incorrect correct operations, but incorrect order that leads to errors
+- correctness of filtering with WHEN for string fields
+- correctness of RANK and LIMIT usage, e.g. sometimes when you need top-1 by a calculated number there may be not only one record with the highes score, but multiple, then you would need rank
+- correctness of grouping, e.g. there may be cases when you need to group-calculate-filter-group-calculate and not just group-group-calculate, because in first case you get e.g. top group in the first grouping and then top subgroup in this group, but in second case with double grouping you are looking for top subgroup among all subgroups from all groups, even though the task could be to extract top group from top subgroup, but it's only one of the possible cases
+
+SQL:
+{sql}
+
+Natural language query:
+{query}
+---
+Output json format:
+{{"reasoning": "reasons behind your decision and what to change in case of incorrect sql", "is_correct": true/false}}
+
+---
+Context
+Data context:
+{data_context}
+
+SQL context:
+{sql_context}
+"""
+
+
+prompt_regenerate_sql = """Given original user query, corresponding original sql and review of the solution generate new fixed version of original sql query.
+
+Original user query:
+{user_query}
+***
+Original sql query: 
+{sql_query}
+***
+Review: "{review}"
 """
