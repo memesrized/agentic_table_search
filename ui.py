@@ -127,6 +127,7 @@ if username is not None:
         try:
             rails_check = rails.rail(to_check_with_rails)
         except Exception:
+            raise
             st.info("Sorry, something went wrong, please try again later.")
 
         if rails_check:  # if check is passed print user's message and process
@@ -145,6 +146,7 @@ if username is not None:
                 show_message(response["messages"][-1])  # show llm response
             except Exception:
                 st.info("Sorry, something went wrong, please try again later.")
+                raise
 
         else:
             st.info(

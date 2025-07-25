@@ -11,8 +11,8 @@ def show_tool_message(message):
         with st.chat_message("tool", avatar="📊"):
             st.write("Raw database results:")
             with st.popover("Click to expand data", use_container_width=True):
-                if tool_res.get("meta", {}).get("user_query"):
-                    st.write(f"Used query: {tool_res["meta"]["user_query"]}")
+                if tool_result.get("meta", {}).get("user_query"):
+                    st.write(f"Used query: {tool_result["meta"]["user_query"]}")
                 tool_res = json.loads(tool_result["result"])
                 st.dataframe(pd.DataFrame(tool_res))
 
