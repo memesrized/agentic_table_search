@@ -6,6 +6,7 @@ from langchain_core.messages import HumanMessage
 from ats.chat.prompts import guardrail_prompt
 from ats.logger import get_logger
 from ats.chat.utils import words_for_guardrails
+from ats.chat.utils import convert_langchain_messages_to_openai
 
 logger = get_logger("guardrails")
 
@@ -22,8 +23,17 @@ class Guardrails:
         self.llm = llm
         self.llm_prompt = guardrail_prompt
 
-    def rail(self, messages: list[dict]) -> bool:
-        flag = self.check_messages_regexp(messages[-3:])
+    def _filter_messages(self, messages: list[dict]) -> list[dict]:
+        return [x for x in messages if x["role"] in ["assistant", "user"]]
+    
+    def _prepare_messages(self, messages) -> list[dict]:
+        messages = convert_langchain_messages_to_openai(messages)
+        messages = self._filter_messages(messages)
+        return messages
+
+    def rail(self, messages) -> bool:
+        messages = self._prepare_messages(messages)
+        flag = self.check_messages_regexp(messages)
         logger.debug("Regexp guardrail check: {}".format(flag))
         if not flag and self.fallback_to_llm:
             flag = self.check_messages_llm(messages)
@@ -31,7 +41,7 @@ class Guardrails:
         return flag
 
     def check_messages_regexp(self, messages: list[dict]) -> bool:
-        messages = " ".join([x["content"] for x in messages[-5:] if x["role"] == "user"])
+        messages = " ".join([x["content"] for x in messages[-1:] if x["role"] == "user"])  # is 1 msg too strict?
         logger.debug("regexp check messages: {}".format(messages))
         if self.regexp.search(messages) is not None:
             return True
@@ -39,7 +49,7 @@ class Guardrails:
             return False
 
     def check_messages_llm(self, messages: list[dict]) -> bool:
-        messages = json.dumps(messages, ensure_ascii=False)
+        messages = json.dumps(messages[-5:], ensure_ascii=False)
         logger.debug("llm check messages: {}".format(messages))
         res = self.llm.invoke([HumanMessage(self.llm_prompt + messages)])
         return res["flag"]

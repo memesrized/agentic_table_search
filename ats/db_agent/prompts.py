@@ -87,6 +87,7 @@ You should use "LOWER(Name) = "john doe" in where condidtion for this.
 sql_context = """
 - Use SQLite syntax to query the table, since your query will be executed with pandasql library.
 - Instead of e.g. "COUNT(*)" (or with other aggregations) as column name, you must use appropriate name like "something_count" or "something_number", etc.
+- Use RANK() window function instead of LIMIT 1 to include all records that tie for the top value, cause sometimes there can be 
 """
 
 nlq_to_sql_prompt = nlq_to_sql_prompt.format(

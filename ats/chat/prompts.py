@@ -49,5 +49,6 @@ But distinguish ask for clarification from user with irrelevant topics, analyze 
 
 Response in json: 
 {"flag": true/false}
+
 Conversation:
 """

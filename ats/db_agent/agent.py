@@ -3,7 +3,6 @@ from ats.db_agent.prompts import data_context, nlq_to_sql_prompt, nlq_check_prom
 from langchain.schema import HumanMessage
 import pandas as pd
 from typing import Union
-import streamlit as st
 
 logger = get_logger(name="db_agent")
 
@@ -41,12 +40,13 @@ class DBAgent:
 
         meta = {}
         logger.info(f"Received user query: {user_query}")
+        # to prevent hallucinations when LLM is confinetly trying to query data that doesn't exist
         check_valid, message = self.check_nlq(user_query)
         logger.info(f"Query validation result: {check_valid}, message: {message}")
         if not check_valid:
             logger.error(f"Invalid query: {user_query}")
             logger.error(f"Reason: {message}")
-            return [], {"error": message}
+            return {"error": message, "result": "[]"}
 
         logger.info(f"Generating SQL query")
         sql_query = self.generate_sql_query(user_query)
@@ -56,8 +56,11 @@ class DBAgent:
         logger.info(f"SQL query execution result: {result}")
         if isinstance(result, str):
             logger.error(f"Error executing SQL query: {result}")
-            return [], {"error": result}
-
+            return {"error": result, "result": "[]"}
+        
+        # workaround
+        # st.session_state doesn't work and doesn't allow to save a table and show to the user without LLM
+        # to overcome this separate db is needed to store temporary table 
         if len(result) > truncation_limit:
             meta["truncated"] = "Original length is {}, truncated to {}.".format(
                 len(result), truncation_limit
@@ -67,7 +70,7 @@ class DBAgent:
                 **meta,
             }
 
-        return result, {"result": result.to_json(orient="records"), **meta}
+        return {"result": result.to_json(orient="records"), **meta}
 
     def check_nlq(self, user_query: str):
         """Check if the user query requires a read-only permission only
@@ -119,3 +122,4 @@ class DBAgent:
 
     def assess_text_fields_extraction(self, result, query):
         pass
+
